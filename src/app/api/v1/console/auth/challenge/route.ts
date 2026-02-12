@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         }
 
         // Generate 6-digit OTP
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const code = Math.floor(10000000 + Math.random() * 90000000).toString();
 
         // Store in DB
         await createDeveloperOtp(body.email, code);

@@ -84,7 +84,7 @@
                                     "        var jsonData = pm.response.json();",
                                     "        pm.expect(jsonData.status).to.eql('success');",
                                     "    });",
-                                    "    console.log('✅ Check your email for the 6-digit code, then use it in Step 2');",
+                                    "    console.log('✅ Check your email for the 8-digit code, then use it in Step 2');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -116,7 +116,7 @@
                                 "challenge"
                             ]
                         },
-                        "description": "Envía un código OTP de 6 dígitos al email del desarrollador vía Resend.\n\n⚠️ Cambia `developer_email` en las variables de la colección a tu email real."
+                        "description": "Envía un código OTP de 8 dígitos al email del desarrollador vía Resend.\n\n⚠️ Cambia `developer_email` en las variables de la colección a tu email real."
                     },
                     "response": []
                 },
@@ -167,7 +167,7 @@
                                 "verify"
                             ]
                         },
-                        "description": "Verifica el código OTP y retorna un JWT token.\n\n⚠️ Pon el código de 6 dígitos que recibiste en tu email en la variable `otp_code`.\n\n✅ El JWT se guarda automáticamente en la variable `jwt_token`."
+                        "description": "Verifica el código OTP y retorna un JWT token.\n\n⚠️ Pon el código de 8 dígitos que recibiste en tu email en la variable `otp_code`.\n\n✅ El JWT se guarda automáticamente en la variable `jwt_token`."
                     },
                     "response": []
                 },
@@ -316,7 +316,7 @@
                                     "        var jsonData = pm.response.json();",
                                     "        pm.expect(jsonData.status).to.eql('success');",
                                     "    });",
-                                    "    console.log('✅ Check the user email for the 6-digit code');",
+                                    "    console.log('✅ Check the user email for the 8-digit code');",
                                     "}"
                                 ],
                                 "type": "text/javascript"

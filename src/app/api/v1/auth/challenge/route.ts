@@ -18,8 +18,8 @@ export async function POST(request: Request) {
             return errorResponse('Valid email is required', request, 400);
         }
 
-        // 3. Generate 6-digit OTP
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // 3. Generate 8-digit OTP
+        const code = Math.floor(10000000 + Math.random() * 90000000).toString();
 
         // 4. Store in DB
         // auth.appId is guaranteed if authenticated via API Key (checked in verifyAuth)

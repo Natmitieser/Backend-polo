@@ -1,0 +1,103 @@
+/**
+ * Polo Core API — Authentication Middleware
+ * 
+ * Verifies Supabase JWT tokens sent by the frontend.
+ * Extracts user identity (email) from the verified token.
+ * 
+ * How it works:
+ * 1. Frontend logs in via Supabase Auth → gets access_token
+ * 2. Frontend sends: Authorization: Bearer <access_token>
+ * 3. This middleware verifies the token with Supabase
+ * 4. Extracts user email for tenant/user identification
+ */
+import { createClient } from '@supabase/supabase-js';
+
+export interface AuthResult {
+    authenticated: true;
+    userId: string;
+    email: string;
+}
+
+export interface AuthError {
+    authenticated: false;
+    error: string;
+    status: number;
+}
+
+/**
+ * Verify the Authorization header and extract user info.
+ */
+export async function verifyAuth(request: Request): Promise<AuthResult | AuthError> {
+    const authHeader = request.headers.get('Authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return {
+            authenticated: false,
+            error: 'Missing or invalid Authorization header. Expected: Bearer <token>',
+            status: 401,
+        };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    if (!token || token.length < 10) {
+        return {
+            authenticated: false,
+            error: 'Invalid token format',
+            status: 401,
+        };
+    }
+
+    try {
+        // Create a temporary Supabase client with the user's token
+        // This verifies the token is valid and not expired
+        const supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_ANON_KEY!,
+            {
+                global: {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                },
+            }
+        );
+
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            console.warn('[Polo Auth] Token verification failed:', error?.message);
+            return {
+                authenticated: false,
+                error: 'Invalid or expired token',
+                status: 401,
+            };
+        }
+
+        if (!user.email) {
+            return {
+                authenticated: false,
+                error: 'User has no email associated',
+                status: 403,
+            };
+        }
+
+        return {
+            authenticated: true,
+            userId: user.id,
+            email: user.email,
+        };
+    } catch (err: unknown) {
+        const error = err as { message?: string };
+        console.error('[Polo Auth] Unexpected error:', error.message);
+        return {
+            authenticated: false,
+            error: 'Authentication service unavailable',
+            status: 503,
+        };
+    }
+}

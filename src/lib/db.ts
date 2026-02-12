@@ -312,3 +312,89 @@ export async function verifyOtpCode(appId: string, email: string, code: string):
 
     return true;
 }
+
+// ─────────────────────────────────────────────
+// Developer Console Authentication
+// ─────────────────────────────────────────────
+
+/**
+ * Stores an OTP code for a developer (console login).
+ * Uses a separate table from SDK OTP codes.
+ */
+export async function createDeveloperOtp(email: string, code: string): Promise<void> {
+    const db = getAdminClient();
+
+    // Invalidate previous codes for this email
+    await db
+        .from('developer_otp_codes')
+        .update({ used: true })
+        .eq('email', email);
+
+    const { error } = await db.from('developer_otp_codes').insert({
+        email: email,
+        code: code,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
+    });
+
+    if (error) {
+        throw new Error(`[Polo DB] Create Developer OTP error: ${error.message}`);
+    }
+}
+
+/**
+ * Verifies a developer OTP code.
+ */
+export async function verifyDeveloperOtp(email: string, code: string): Promise<boolean> {
+    const db = getAdminClient();
+
+    const { data, error } = await db
+        .from('developer_otp_codes')
+        .select('*')
+        .eq('email', email)
+        .eq('code', code)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+    if (error || !data) {
+        return false;
+    }
+
+    // Mark as used
+    await db
+        .from('developer_otp_codes')
+        .update({ used: true })
+        .eq('id', data.id);
+
+    return true;
+}
+
+/**
+ * Creates or retrieves a developer profile.
+ * Returns the developer's Supabase user ID and email.
+ */
+export async function upsertDeveloper(email: string): Promise<{ id: string; email: string }> {
+    const db = getAdminClient();
+
+    // Check if developer exists in the developers table
+    const { data: existing } = await db
+        .from('developers')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+    if (existing) return { id: existing.id, email: existing.email };
+
+    // Create new developer
+    const { data, error } = await db
+        .from('developers')
+        .insert({ email })
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(`[Polo DB] Create Developer error: ${error.message}`);
+    }
+
+    return { id: data.id, email: data.email };
+}

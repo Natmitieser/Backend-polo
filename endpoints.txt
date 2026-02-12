@@ -1,0 +1,67 @@
+
+# Polo Core API — Referencia de Endpoints
+
+URL Base (Dev): http://localhost:3001
+URL Base (Prod): https://su-backend.vercel.app (Ejemplo)
+
+## 1. Autenticación de Desarrollador (Console)
+No requiere headers de autenticación.
+
+- **POST /api/v1/console/auth/challenge**
+  - Envía un código OTP de 6 dígitos al email del desarrollador vía Resend.
+  - Body: `{ "email": "dev@gmail.com" }`
+
+- **POST /api/v1/console/auth/verify**
+  - Verifica el código OTP y retorna un JWT token de sesión.
+  - Body: `{ "email": "dev@gmail.com", "code": "123456" }`
+  - Retorna: `{ "token": "eyJ...", "user": { ... } }`
+
+- **GET /api/v1/console/auth/me**
+  - Retorna info del desarrollador autenticado.
+  - Headers: `Authorization: Bearer <JWT>`
+
+## 2. Gestión de Apps (Proyectos)
+Headers requeridos: `Authorization: Bearer <JWT>`
+
+- **GET /api/v1/apps**
+  - Lista todos los proyectos/apps creados por el desarrollador.
+  
+- **POST /api/v1/apps**
+  - Crea un nuevo proyecto.
+  - Body: `{ "name": "Mi App Fintech" }`
+
+## 3. Autenticación del SDK (Usuarios Finales)
+Headers requeridos: `x-publishable-key: pk_...`
+
+- **POST /api/v1/auth/challenge**
+  - Paso 1: Solicita un código OTP vía email (Resend).
+  - Body: `{ "email": "usuario@gmail.com" }`
+
+- **POST /api/v1/auth/verify**
+  - Paso 2: Verifica el código y obtiene/crea la wallet.
+  - Body: `{ "email": "usuario@gmail.com", "code": "123456" }`
+  - Retorna: `{ "token": "...", "wallet": { ... } }`
+
+## 4. Operaciones de Wallet (Custodia)
+Headers requeridos: `x-publishable-key: pk_...` o `Authorization: Bearer <JWT>`
+
+- **GET /api/v1/wallet/balance**
+  - Retorna el saldo de XLM y USDC para el usuario autenticado.
+
+- **GET /api/v1/history**
+  - Retorna el historial de transacciones desde Stellar Horizon.
+  - Parámetros: `?limit=10`
+
+- **POST /api/v1/wallet/create** (Legacy)
+  - Crea una wallet manualmente (auth/verify ya lo hace automáticamente).
+
+## 5. Pagos
+Headers requeridos: `x-publishable-key: pk_...` o `Authorization: Bearer <JWT>`
+
+- **POST /api/v1/payment/send**
+  - Envía fondos desde la wallet en custodia a otra dirección.
+  - Body: `{ "destination": "GBX...", "amount": "10.5", "assetCode": "XLM" }`
+
+## 6. Sistema
+- **GET /api/v1/health**
+  - Retorna estado 200 si la API está corriendo.

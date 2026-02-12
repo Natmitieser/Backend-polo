@@ -1,0 +1,590 @@
+{
+    "info": {
+        "_postman_id": "polo-core-api",
+        "name": "Polo Core API — Complete Collection",
+        "description": "Colección completa para probar todos los endpoints de Polo Core API.\n\n## Flujo de Uso\n\n### 1. Developer Login (Console)\n1. POST Console Auth Challenge → recibir código al email\n2. POST Console Auth Verify → obtener JWT token\n3. GET Console Auth Me → verificar sesión\n\n### 2. Crear App\n4. POST Create App → obtener publishable_key\n5. GET List Apps → ver proyectos\n\n### 3. SDK User Login\n6. POST SDK Auth Challenge (usar publishable_key) → código al email del usuario\n7. POST SDK Auth Verify → obtener wallet\n\n### 4. Operaciones\n8. GET Wallet Balance\n9. POST Send Payment\n10. GET Transaction History",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3001",
+            "type": "string"
+        },
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "publishable_key",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "developer_email",
+            "value": "tu-email@gmail.com",
+            "type": "string"
+        },
+        {
+            "key": "user_email",
+            "value": "usuario@gmail.com",
+            "type": "string"
+        },
+        {
+            "key": "otp_code",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "wallet_address",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "0. System",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "health"
+                            ]
+                        },
+                        "description": "Verifica que la API está corriendo. No requiere autenticación."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "1. Console Auth (Desarrollador)",
+            "description": "Flujo de autenticación para desarrolladores. Paso 1: solicitar código. Paso 2: verificar código y obtener JWT.",
+            "item": [
+                {
+                    "name": "Step 1 — Request OTP Code",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('OTP sent successfully', function () {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.status).to.eql('success');",
+                                    "    });",
+                                    "    console.log('✅ Check your email for the 6-digit code, then use it in Step 2');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{developer_email}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/console/auth/challenge",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "console",
+                                "auth",
+                                "challenge"
+                            ]
+                        },
+                        "description": "Envía un código OTP de 6 dígitos al email del desarrollador vía Resend.\n\n⚠️ Cambia `developer_email` en las variables de la colección a tu email real."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 2 — Verify OTP & Get JWT",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test('Authentication successful', function () {",
+                                    "        pm.expect(jsonData.status).to.eql('success');",
+                                    "        pm.expect(jsonData.token).to.be.a('string');",
+                                    "    });",
+                                    "    // Auto-save the JWT token for subsequent requests",
+                                    "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                                    "    console.log('✅ JWT saved! You can now use the Apps and other endpoints.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{developer_email}}\",\n    \"code\": \"{{otp_code}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/console/auth/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "console",
+                                "auth",
+                                "verify"
+                            ]
+                        },
+                        "description": "Verifica el código OTP y retorna un JWT token.\n\n⚠️ Pon el código de 6 dígitos que recibiste en tu email en la variable `otp_code`.\n\n✅ El JWT se guarda automáticamente en la variable `jwt_token`."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Profile",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Profile retrieved', function () {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.user.email).to.be.a('string');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/console/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "console",
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Retorna la información del desarrollador autenticado.\nRequiere el JWT token obtenido en Step 2."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Apps (Proyectos)",
+            "description": "Gestión de proyectos/apps del desarrollador. Cada app genera una publishable_key para el SDK.",
+            "item": [
+                {
+                    "name": "Create App",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test('App created', function () {",
+                                    "        pm.expect(jsonData.status).to.eql('created');",
+                                    "        pm.expect(jsonData.app.publishable_key).to.be.a('string');",
+                                    "    });",
+                                    "    // Auto-save the publishable key for SDK requests",
+                                    "    pm.collectionVariables.set('publishable_key', jsonData.app.publishable_key);",
+                                    "    console.log('✅ Publishable Key saved: ' + jsonData.app.publishable_key);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Mi Fintech App\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/apps",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "apps"
+                            ]
+                        },
+                        "description": "Crea un nuevo proyecto. Retorna la publishable_key que se usa en el SDK.\n\n✅ La publishable_key se guarda automáticamente en la variable `publishable_key`."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List My Apps",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/apps",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "apps"
+                            ]
+                        },
+                        "description": "Lista todos los proyectos del desarrollador autenticado."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3. SDK Auth (Usuarios Finales)",
+            "description": "Flujo de autenticación para usuarios finales del SDK. Usa x-publishable-key en lugar de JWT.",
+            "item": [
+                {
+                    "name": "Step 1 — Send OTP to User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('OTP sent to user', function () {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.status).to.eql('success');",
+                                    "    });",
+                                    "    console.log('✅ Check the user email for the 6-digit code');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{user_email}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/challenge",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "challenge"
+                            ]
+                        },
+                        "description": "Envía un código OTP al email del usuario final.\n\nRequiere `x-publishable-key` (obtenida al crear un App).\n\n⚠️ Cambia `user_email` en las variables de la colección."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 2 — Verify User OTP & Get Wallet",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test('User authenticated, wallet ready', function () {",
+                                    "        pm.expect(jsonData.status).to.eql('success');",
+                                    "        pm.expect(jsonData.wallet.address).to.be.a('string');",
+                                    "    });",
+                                    "    pm.collectionVariables.set('wallet_address', jsonData.wallet.address);",
+                                    "    console.log('✅ Wallet: ' + jsonData.wallet.address);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{user_email}}\",\n    \"code\": \"{{otp_code}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "verify"
+                            ]
+                        },
+                        "description": "Verifica el código OTP del usuario y retorna/crea su wallet Stellar.\n\n⚠️ Pon el código de 6 dígitos en la variable `otp_code`.\n\n✅ La dirección de wallet se guarda automáticamente."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4. Wallet",
+            "description": "Operaciones de wallet del usuario. Autenticación via x-publishable-key o JWT.",
+            "item": [
+                {
+                    "name": "Create Wallet (Legacy)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/create",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "create"
+                            ]
+                        },
+                        "description": "Crea una wallet manualmente. El flujo de auth/verify ya crea wallets automáticamente."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Balance",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test('Balances retrieved', function () {",
+                                    "        pm.expect(jsonData.balances).to.be.an('object');",
+                                    "    });",
+                                    "    console.log('XLM: ' + (jsonData.balances.XLM || '0'));",
+                                    "    console.log('USDC: ' + (jsonData.balances.USDC || '0'));",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/balance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "balance"
+                            ]
+                        },
+                        "description": "Obtiene los saldos en tiempo real de la wallet del usuario desde Stellar Horizon."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "5. Payments",
+            "item": [
+                {
+                    "name": "Send Payment",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test('Payment sent', function () {",
+                                    "        pm.expect(jsonData.tx_hash).to.be.a('string');",
+                                    "    });",
+                                    "    console.log('✅ TX Hash: ' + jsonData.tx_hash);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"destination\": \"GBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\n    \"amount\": \"1.0\",\n    \"assetCode\": \"XLM\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/payment/send",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "payment",
+                                "send"
+                            ]
+                        },
+                        "description": "Envía un pago desde la wallet del usuario autenticado.\n\n⚠️ Cambia `destination` a una dirección Stellar válida (56 chars, empieza con G)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "6. History",
+            "item": [
+                {
+                    "name": "Get Transaction History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-publishable-key",
+                                "value": "{{publishable_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/history?limit=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Obtiene el historial de transacciones desde Stellar Horizon.\nMáximo 50 transacciones."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

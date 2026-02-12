@@ -29,7 +29,8 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const { destination, amount, asset, tenant_id } = body;
-        const tenantId = tenant_id || 'default';
+        // Use App ID from auth if available (SDK mode), otherwise check body or default
+        const tenantId = auth.appId || tenant_id || 'default';
 
         // 2. Validate inputs
         if (!destination || !amount) {

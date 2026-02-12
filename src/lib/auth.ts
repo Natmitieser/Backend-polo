@@ -16,6 +16,7 @@ export interface AuthResult {
     authenticated: true;
     userId: string;
     email: string;
+    appId?: string; // If authenticated via API Key
 }
 
 export interface AuthError {
@@ -27,13 +28,55 @@ export interface AuthError {
 /**
  * Verify the Authorization header and extract user info.
  */
+import { getAppByPublishableKey } from './db';
+
+/**
+ * Verify the Authorization header OR x-publishable-key.
+ */
 export async function verifyAuth(request: Request): Promise<AuthResult | AuthError> {
     const authHeader = request.headers.get('Authorization');
+    const apiKey = request.headers.get('x-publishable-key');
 
+    // ─────────────────────────────────────────────
+    // 1. API Key Auth (SDK / End-User)
+    // ─────────────────────────────────────────────
+    if (apiKey) {
+        if (!apiKey.startsWith('pk_')) {
+            return {
+                authenticated: false,
+                error: 'Invalid API Key format. Must start with pk_',
+                status: 401,
+            };
+        }
+
+        const app = await getAppByPublishableKey(apiKey);
+
+        if (!app) {
+            return {
+                authenticated: false,
+                error: 'Invalid API Key. Project not found.',
+                status: 401,
+            };
+        }
+
+        // For SDK users, the "User ID" is effectively the App ID for now,
+        // unless we pass a specific user identifier in the body (which we do for wallet create).
+        // The endpoint logic will handle the specific user identifier.
+        return {
+            authenticated: true,
+            userId: app.owner_id, // The developer owns the app
+            email: `app:${app.id}`, // Special email format for App-authenticated requests
+            appId: app.id, // NEW: Context of the App
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // 2. JWT Auth (Console / Developer)
+    // ─────────────────────────────────────────────
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return {
             authenticated: false,
-            error: 'Missing or invalid Authorization header. Expected: Bearer <token>',
+            error: 'Missing authentication. Provide Bearer token or x-publishable-key.',
             status: 401,
         };
     }
@@ -49,8 +92,6 @@ export async function verifyAuth(request: Request): Promise<AuthResult | AuthErr
     }
 
     try {
-        // Create a temporary Supabase client with the user's token
-        // This verifies the token is valid and not expired
         const supabase = createClient(
             process.env.SUPABASE_URL!,
             process.env.SUPABASE_ANON_KEY!,
@@ -90,6 +131,7 @@ export async function verifyAuth(request: Request): Promise<AuthResult | AuthErr
             authenticated: true,
             userId: user.id,
             email: user.email,
+            // appId is undefined for Console users (they are global admins of their own account)
         };
     } catch (err: unknown) {
         const error = err as { message?: string };
@@ -101,3 +143,4 @@ export async function verifyAuth(request: Request): Promise<AuthResult | AuthErr
         };
     }
 }
+

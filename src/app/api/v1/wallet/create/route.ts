@@ -28,7 +28,10 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json().catch(() => ({}));
-        const tenantId = body.tenant_id || 'default';
+
+        // If authenticated via API Key, FORCE the tenant_id to be the App ID
+        // If authenticated via JWT (Console), allow manual tenant_id (or use default)
+        const tenantId = auth.appId || body.tenant_id || 'default';
 
         // 2. Check if wallet already exists
         const existing = await findWallet(tenantId, auth.email);

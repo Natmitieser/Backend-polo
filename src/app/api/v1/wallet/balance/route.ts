@@ -20,7 +20,8 @@ export async function GET(request: Request) {
         }
 
         const { searchParams } = new URL(request.url);
-        const tenantId = searchParams.get('tenant_id') || 'default';
+        // Use App ID from auth if available (SDK mode), otherwise check params or default
+        const tenantId = auth.appId || searchParams.get('tenant_id') || 'default';
 
         // 2. Get public key from DB
         const publicKey = await getPublicKey(tenantId, auth.email);

@@ -20,7 +20,8 @@ export async function GET(request: Request) {
         }
 
         const { searchParams } = new URL(request.url);
-        const tenantId = searchParams.get('tenant_id') || 'default';
+        // Use App ID from auth if available (SDK mode), otherwise check params or default
+        const tenantId = auth.appId || searchParams.get('tenant_id') || 'default';
         const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
 
         // 2. Get public key from DB

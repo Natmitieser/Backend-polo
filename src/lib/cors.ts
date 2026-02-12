@@ -34,7 +34,7 @@ export function withCors(response: NextResponse, request: Request): NextResponse
     }
 
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-publishable-key');
     response.headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24h
 
     // Security headers
@@ -45,6 +45,7 @@ export function withCors(response: NextResponse, request: Request): NextResponse
 
     return response;
 }
+
 
 /**
  * Handle CORS preflight (OPTIONS) request.

@@ -146,3 +146,78 @@ export async function getEncryptedSecret(
 
     return data as { encrypted_secret: string; iv: string } | null;
 }
+
+// ─────────────────────────────────────────────
+// App / Project Management
+// ─────────────────────────────────────────────
+
+export interface App {
+    id: string;
+    owner_id: string;
+    name: string;
+    api_key: string;
+    publishable_key: string;
+    allowed_domains: string[];
+    created_at: string;
+}
+
+/**
+ * Validates a Publishable Key (used by Frontend SDK) and returns the App ID.
+ */
+export async function getAppByPublishableKey(publishableKey: string): Promise<App | null> {
+    const db = getAdminClient();
+
+    const { data, error } = await db
+        .from('apps')
+        .select('*')
+        .eq('publishable_key', publishableKey)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('[Polo DB] Key validation error:', error.message);
+        return null; // Fail safe
+    }
+
+    return data as App | null;
+}
+
+/**
+ * Creates a new App for a developer.
+ */
+export async function createApp(ownerId: string, name: string): Promise<App> {
+    const db = getAdminClient();
+
+    const { data, error } = await db
+        .from('apps')
+        .insert({
+            owner_id: ownerId,
+            name: name,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(`[Polo DB] Create App error: ${error.message}`);
+    }
+
+    return data as App;
+}
+
+/**
+ * Lists all apps for a specific developer.
+ */
+export async function getUserApps(ownerId: string): Promise<App[]> {
+    const db = getAdminClient();
+
+    const { data, error } = await db
+        .from('apps')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        throw new Error(`[Polo DB] List Apps error: ${error.message}`);
+    }
+
+    return data as App[];
+}

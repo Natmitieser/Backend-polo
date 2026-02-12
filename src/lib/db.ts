@@ -221,3 +221,94 @@ export async function getUserApps(ownerId: string): Promise<App[]> {
 
     return data as App[];
 }
+
+// ─────────────────────────────────────────────
+// SDK Authentication (End-Users)
+// ─────────────────────────────────────────────
+
+/**
+ * Creates or retrieves an SDK User.
+ */
+export async function upsertSdkUser(appId: string, email: string): Promise<any> {
+    const db = getAdminClient();
+
+    // Check if user exists
+    const { data: existing } = await db
+        .from('sdk_users')
+        .select('*')
+        .eq('app_id', appId)
+        .eq('email', email)
+        .single();
+
+    if (existing) return existing;
+
+    // Create new user
+    const { data, error } = await db
+        .from('sdk_users')
+        .insert({
+            app_id: appId,
+            email: email,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(`[Polo DB] Create SDK User error: ${error.message}`);
+    }
+
+    return data;
+}
+
+/**
+ * Stores an OTP code for verification.
+ */
+export async function createOtpCode(appId: string, email: string, code: string): Promise<void> {
+    const db = getAdminClient();
+
+    // Invalidate previous codes
+    await db
+        .from('otp_codes')
+        .update({ used: true })
+        .eq('app_id', appId)
+        .eq('email', email);
+
+    const { error } = await db.from('otp_codes').insert({
+        app_id: appId,
+        email: email,
+        code: code,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
+    });
+
+    if (error) {
+        throw new Error(`[Polo DB] Create OTP error: ${error.message}`);
+    }
+}
+
+/**
+ * Verifies an OTP code.
+ */
+export async function verifyOtpCode(appId: string, email: string, code: string): Promise<boolean> {
+    const db = getAdminClient();
+
+    const { data, error } = await db
+        .from('otp_codes')
+        .select('*')
+        .eq('app_id', appId)
+        .eq('email', email)
+        .eq('code', code)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+    if (error || !data) {
+        return false;
+    }
+
+    // Mark as used
+    await db
+        .from('otp_codes')
+        .update({ used: true })
+        .eq('id', data.id);
+
+    return true;
+}

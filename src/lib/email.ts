@@ -16,7 +16,7 @@ export async function sendOtpEmail(email: string, code: string, appName: string 
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Polo Auth <onboarding@resend.dev>', // Default testing domain
+            from: 'Polo Auth <noreply@aleregex.com>',
             to: [email],
             subject: `${code} is your verification code for ${appName}`,
             html: `

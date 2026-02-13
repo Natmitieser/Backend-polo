@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
         if (!walletSecret) {
             return errorResponse(
-                'Wallet not found. Call POST /api/v1/wallet/create first.',
+                'Wallet not found. User must authenticate via POST /api/v1/auth/verify first.',
                 request,
                 404
             );

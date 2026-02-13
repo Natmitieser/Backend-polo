@@ -40,6 +40,11 @@
             "key": "wallet_address",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "sdk_token",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -367,9 +372,12 @@
                                     "    pm.test('User authenticated, wallet ready', function () {",
                                     "        pm.expect(jsonData.status).to.eql('success');",
                                     "        pm.expect(jsonData.wallet.address).to.be.a('string');",
+                                    "        pm.expect(jsonData.token).to.be.a('string');",
                                     "    });",
                                     "    pm.collectionVariables.set('wallet_address', jsonData.wallet.address);",
+                                    "    pm.collectionVariables.set('sdk_token', jsonData.token);",
                                     "    console.log('✅ Wallet: ' + jsonData.wallet.address);",
+                                    "    console.log('✅ SDK Token saved for balance/payment/history requests');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -404,7 +412,7 @@
                                 "verify"
                             ]
                         },
-                        "description": "Verifica el código OTP del usuario y retorna/crea su wallet Stellar.\n\n⚠️ Pon el código de 6 dígitos en la variable `otp_code`.\n\n✅ La dirección de wallet se guarda automáticamente."
+                        "description": "Verifica el código OTP del usuario y retorna/crea su wallet Stellar.\n\n⚠️ Pon el código de 8 dígitos en la variable `otp_code`.\n\n✅ La dirección de wallet y el SDK token se guardan automáticamente."
                     },
                     "response": []
                 }
@@ -414,40 +422,6 @@
             "name": "4. Wallet",
             "description": "Operaciones de wallet del usuario. Autenticación via x-publishable-key o JWT.",
             "item": [
-                {
-                    "name": "Create Wallet (Legacy)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "x-publishable-key",
-                                "value": "{{publishable_key}}"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/wallet/create",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "wallet",
-                                "create"
-                            ]
-                        },
-                        "description": "Crea una wallet manualmente. El flujo de auth/verify ya crea wallets automáticamente."
-                    },
-                    "response": []
-                },
                 {
                     "name": "Get Balance",
                     "event": [
@@ -474,6 +448,10 @@
                             {
                                 "key": "x-publishable-key",
                                 "value": "{{publishable_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sdk_token}}"
                             }
                         ],
                         "url": {
@@ -526,6 +504,10 @@
                             {
                                 "key": "x-publishable-key",
                                 "value": "{{publishable_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sdk_token}}"
                             }
                         ],
                         "body": {
@@ -561,6 +543,10 @@
                             {
                                 "key": "x-publishable-key",
                                 "value": "{{publishable_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sdk_token}}"
                             }
                         ],
                         "url": {

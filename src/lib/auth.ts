@@ -59,14 +59,47 @@ export async function verifyAuth(request: Request): Promise<AuthResult | AuthErr
             };
         }
 
-        // For SDK users, the "User ID" is effectively the App ID for now,
-        // unless we pass a specific user identifier in the body (which we do for wallet create).
-        // The endpoint logic will handle the specific user identifier.
+        // If BOTH API key AND JWT are present, verify JWT to get user identity
+        // This is the normal SDK flow: user has a token from auth/verify + the app's publishable key
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.replace('Bearer ', '');
+            try {
+                const supabase = createClient(
+                    process.env.SUPABASE_URL!,
+                    process.env.SUPABASE_ANON_KEY!,
+                    {
+                        global: {
+                            headers: { Authorization: `Bearer ${token}` },
+                        },
+                        auth: {
+                            autoRefreshToken: false,
+                            persistSession: false,
+                        },
+                    }
+                );
+
+                const { data: { user }, error } = await supabase.auth.getUser(token);
+
+                if (!error && user?.email) {
+                    // Combined auth: JWT user identity + API key app context
+                    return {
+                        authenticated: true,
+                        userId: user.id,
+                        email: user.email,
+                        appId: app.id,
+                    };
+                }
+            } catch {
+                // JWT verification failed, fall through to API-key-only auth
+            }
+        }
+
+        // API key only (used during auth/challenge and auth/verify flows)
         return {
             authenticated: true,
-            userId: app.owner_id, // The developer owns the app
-            email: `app:${app.id}`, // Special email format for App-authenticated requests
-            appId: app.id, // NEW: Context of the App
+            userId: app.owner_id,
+            email: `app:${app.id}`,
+            appId: app.id,
         };
     }
 
